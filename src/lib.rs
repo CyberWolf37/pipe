@@ -48,12 +48,12 @@ impl<T: PipeU> PipeBox<T> {
         }
     }
 
-    fn set_control<U: Fn(&T) -> PipeState + Send + Sync + 'static>(mut self,func: U) -> Self {
+    fn set_control<U: Fn(&T) -> PipeState + Send + Sync + 'static>(&mut self,func: U) -> &Self {
         self.function_control = Some(Arc::new(func));
         self
     }
 
-    fn set_consume<U: Fn(&T) -> PipeState + Send + Sync + 'static>(mut self,func: U) -> Self {
+    fn set_consume<U: Fn(&T) -> PipeState + Send + Sync + 'static>(&mut self,func: U) -> &Self {
         self.function_core = Some(Arc::new(func));
         self
     }
@@ -88,7 +88,7 @@ impl<'r,T> Pipe<'r,T> where T : PipeU
         
     }
 
-    fn remove_user(mut self, pipe_t: &'r T) {
+    fn remove_user(&mut self, pipe_t: &'r T) {
         let index:Option<usize> = match self.pipeArrayUsr.iter_mut().enumerate().find(|x| x.1.0 == pipe_t) {
             Some(e) => {
                 Some(e.0)
@@ -125,7 +125,7 @@ impl<'r,T> Pipe<'r,T> where T : PipeU
         };
     }
 
-    fn consume(&mut self,pipe_u: &T) {
+    fn consume(&mut self,pipe_u: &'r T) {
         let index_box: Option<usize> = match self.pipeArrayUsr.iter().find(|x| x.0 == pipe_u) {
             Some(e) => Some(e.1),
             None => panic!("Don't have this box for user"),
@@ -137,13 +137,21 @@ impl<'r,T> Pipe<'r,T> where T : PipeU
                     // Si c'est bon on passe au box suivant
                     PipeState::NextState => {
                         let index_box = index_box.unwrap() + 1;
+                        let index_arr = self.pipeArrayBox.len();
+
                         self.set_user(pipe_u, index_box);
 
-                        match self.get_box(pipe_u).internal_state() {
-                            PipeState::ConsumeState => self.consume(pipe_u),
-                            PipeState::WaitState => {},
-                            _ => {}
+                        if index_box >= index_arr {
+                            self.remove_user(pipe_u);
                         }
+                        else {
+                            match self.get_box(pipe_u).internal_state() {
+                                PipeState::ConsumeState => self.consume(pipe_u),
+                                PipeState::WaitState => {},
+                                _ => {}
+                            }
+                        }
+                        
                     }
                     PipeState::RestartState => {}
                     _ => {}
@@ -153,8 +161,6 @@ impl<'r,T> Pipe<'r,T> where T : PipeU
             PipeState::RestartState => {}
             _ => {}
         }
-
-        self.pipeArrayBox[index_box.unwrap()].consume(pipe_u);
     }
 
 }
@@ -190,16 +196,40 @@ mod tests {
             }
         }
 
-        let box_1 = PipeBox::<User>::new();
-        let box_1 = box_1.set_control(|x| {println!("1 :{}",x.say);PipeState::ConsumeState});
-        let box_1 = box_1.set_consume(|x| {println!("1 :{}",x.say);PipeState::NextState});
+        let mut box_1 = PipeBox::<User>::new();
+        box_1.set_control(|x| {println!("1 :{}",x.say);PipeState::ConsumeState});
+        box_1.set_consume(|x| {println!("1 :{}",x.say);PipeState::NextState});
 
-        let box_2 = PipeBox::<User>::new();
-        let box_2 = box_2.set_control(|x| {println!("2 :{}",x.say);PipeState::ConsumeState});
-        let box_2 = box_2.set_consume(|x| {println!("2 :{}",x.say);PipeState::NextState});
+        let mut box_2 = PipeBox::<User>::new();
+        box_2.set_control(|x| {println!("2 :{}",x.say);PipeState::ConsumeState});
+        box_2.set_consume(|x| {println!("2 :{}",x.say);PipeState::NextState});
+
+        let mut box_3 = PipeBox::<User>::new();
+        box_3.set_control(|x| {
+            match x.say.as_str() {
+                "Hello mother fucker" => {println!("3 : Quelle grossier personnage");PipeState::ConsumeState},
+                "Fucking ass hole" => {println!("3: Trou du cul toi même");PipeState::ConsumeState},
+                _ => {println!("Mouais pas compris ?");PipeState::ConsumeState},
+            }
+        });
+
+        box_3.set_consume(|x| {
+            match x.say.as_str() {
+                "Hello mother fucker" => {println!("3 : Ton cul c'est du poulet");PipeState::ConsumeState},
+                "Fucking ass hole" => {println!("3: Ok gogole");PipeState::ConsumeState},
+                _ => {println!("Mouais pas compris ?");PipeState::ConsumeState},
+            }
+        });
         
-        let mut pipe = Pipe::new().push_box(box_1).push_box(box_2);
+        let mut pipe = Pipe::new()
+                            .push_box(box_1)
+                            .push_box(box_2)
+                            .push_box(box_3);
 
-        pipe.push_user(&User{say:String::from("Hello mother fucker")});
+        let u_1 = User{say:String::from("Hello mother fucker")};
+        let u_2 = User{say:String::from("Fucking ass hole")};
+
+        pipe.push_user(&u_1);
+        pipe.push_user(&u_2);
     }
 }
