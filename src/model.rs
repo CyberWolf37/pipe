@@ -40,17 +40,17 @@ pub mod models {
             &self.internal_state
         }
 
-        fn set_control<U: Fn(&PipeUser) -> PipeState + Send + Sync + 'static>(mut self,func: U) -> Self {
+        pub fn set_control<U: Fn(&PipeUser) -> PipeState + Send + Sync + 'static>(mut self,func: U) -> Self {
             self.function_control = Arc::new(func);
             self
         }
 
-        fn set_consume<U: Fn(&PipeUser) -> PipeState + Send + Sync + 'static>(mut self,func: U) -> Self {
+        pub fn set_consume<U: Fn(&PipeUser) -> PipeState + Send + Sync + 'static>(mut self,func: U) -> Self {
             self.function_core = Arc::new(func);
             self
         }
 
-        fn set_internal_state(&mut self, state: PipeState) {
+        pub fn set_internal_state(&mut self, state: PipeState) {
             self.internal_state = state;
         }
     }

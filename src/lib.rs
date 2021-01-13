@@ -147,6 +147,7 @@ mod tests {
     use crate::model::models::PipeBox;
     use crate::model::models::PipeUser;
     use crate::PipeState;
+    use crate::PipeU;
 
     #[test]
     fn it_works() {
@@ -157,6 +158,17 @@ mod tests {
         let box_1 = PipeBox::new();
         let box_2 = PipeBox::new();
 
+        let box_2 = box_2.set_control(|x| {
+            if x.get_item().as_str() == "Il fait chaud ici !".to_string() {
+                println!("C'est pas bon");
+                PipeState::RestartState
+            }
+            else {
+                println!("C'est bon");
+                PipeState::ConsumeState
+            }
+        });
+
         
         let mut pipe = Pipe::new()
                             .push_box(box_1)
@@ -164,5 +176,7 @@ mod tests {
 
         pipe.push_user(&user_01);
         pipe.push_user(&user_02);
+        pipe.push_user(&user_02);
+        pipe.push_user(&user_01);
     }
 }
