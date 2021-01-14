@@ -4,20 +4,20 @@ use std::sync::Arc;
 
 
 #[derive(Clone)]
-enum PipeState {
+pub enum PipeState {
     NextState,
     RestartState,
     WaitState,
     ConsumeState,
 }
 
-trait PipeU: Eq {
+pub trait PipeU: Eq {
     type Item;
 
     fn get_item(&self) -> &Self::Item;
 }
 
-trait PipeB<T: PipeU> {
+pub trait PipeB<T: PipeU> {
     fn function_control(&self) -> Option<Arc<dyn Fn(&T) -> PipeState + Send + Sync>>;
     fn function_core(&self) -> Option<Arc<dyn Fn(&T) -> PipeState + Send + Sync>>;
     fn internal_state(&self) -> PipeState;
@@ -38,7 +38,7 @@ trait PipeB<T: PipeU> {
     }
 }
 
-struct Pipe<'r, T: PipeU, U: PipeB<T>> {
+pub struct Pipe<'r, T: PipeU, U: PipeB<T>> {
     pipeArrayBox: Vec<U>,
     pipeArrayUsr: Vec<(&'r T,usize)>,
     name: String,
@@ -46,7 +46,7 @@ struct Pipe<'r, T: PipeU, U: PipeB<T>> {
 
 impl<'r,T,U> Pipe<'r,T,U> where T : PipeU, U : PipeB<T>
 {
-    fn new(name: &str) -> Self {
+    pub fn new(name: &str) -> Self {
         Pipe {
             pipeArrayBox: Vec::new(),
             pipeArrayUsr: Vec::new(),
@@ -54,7 +54,7 @@ impl<'r,T,U> Pipe<'r,T,U> where T : PipeU, U : PipeB<T>
         }
     }
 
-    fn push_user(&mut self,pipe_t: &'r T) {
+    pub fn push_user(&mut self,pipe_t: &'r T) {
         if self.pipeArrayUsr.iter().find(|x| x.0 == pipe_t).is_none() {
             self.pipeArrayUsr.push((pipe_t,0));
             self.consume(pipe_t);
@@ -65,7 +65,7 @@ impl<'r,T,U> Pipe<'r,T,U> where T : PipeU, U : PipeB<T>
         
     }
 
-    fn remove_user(&mut self, pipe_t: &'r T) {
+    pub fn remove_user(&mut self, pipe_t: &'r T) {
         let index:Option<usize> = match self.pipeArrayUsr.iter_mut().enumerate().find(|x| x.1.0 == pipe_t) {
             Some(e) => {
                 Some(e.0)
@@ -81,12 +81,12 @@ impl<'r,T,U> Pipe<'r,T,U> where T : PipeU, U : PipeB<T>
         }
     }
 
-    fn push_box(mut self,pipe_box: U) -> Self {
+    pub fn push_box(mut self,pipe_box: U) -> Self {
         self.pipeArrayBox.push(pipe_box);
         self
     }
 
-    fn get_box(&self, pipe_u: &T) -> &U {
+    pub fn get_box(&self, pipe_u: &T) -> &U {
         let index_box: Option<&U> = match self.pipeArrayUsr.iter().find(|x| x.0 == pipe_u) {
             Some(e) => Some(&self.pipeArrayBox[e.1]),
             None => panic!("Don't have this box for user"),
@@ -95,21 +95,21 @@ impl<'r,T,U> Pipe<'r,T,U> where T : PipeU, U : PipeB<T>
         index_box.unwrap()
     }
 
-    fn set_user(&mut self,pipe_u: &T,index_box: usize) {
+    pub fn set_user(&mut self,pipe_u: &T,index_box: usize) {
         match self.pipeArrayUsr.iter_mut().find(|x| x.0 == pipe_u) {
             Some(e) => Some(e.1 = index_box),
             None => panic!("Don't have this user"),
         };
     }
 
-    fn has_user(&self, pipe_u: &T) -> bool {
+    pub fn has_user(&self, pipe_u: &T) -> bool {
         match self.pipeArrayUsr.iter().find(|x| x.0 == pipe_u) {
             Some(_) => return true,
             None => return false,
         };
     }
 
-    fn consume(&mut self,pipe_u: &'r T) {
+    pub fn consume(&mut self,pipe_u: &'r T) {
         let index_box: Option<usize> = match self.pipeArrayUsr.iter().find(|x| x.0 == pipe_u) {
             Some(e) => Some(e.1),
             None => panic!("Don't have this box for user"),
