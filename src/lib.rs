@@ -41,14 +41,16 @@ trait PipeB<T: PipeU> {
 struct Pipe<'r, T: PipeU, U: PipeB<T>> {
     pipeArrayBox: Vec<U>,
     pipeArrayUsr: Vec<(&'r T,usize)>,
+    name: String,
 }
 
 impl<'r,T,U> Pipe<'r,T,U> where T : PipeU, U : PipeB<T>
 {
-    fn new() -> Self {
+    fn new(name: &str) -> Self {
         Pipe {
             pipeArrayBox: Vec::new(),
             pipeArrayUsr: Vec::new(),
+            name: name.to_string(),
         }
     }
 
@@ -97,6 +99,13 @@ impl<'r,T,U> Pipe<'r,T,U> where T : PipeU, U : PipeB<T>
         match self.pipeArrayUsr.iter_mut().find(|x| x.0 == pipe_u) {
             Some(e) => Some(e.1 = index_box),
             None => panic!("Don't have this user"),
+        };
+    }
+
+    fn has_user(&self, pipe_u: &T) -> bool {
+        match self.pipeArrayUsr.iter().find(|x| x.0 == pipe_u) {
+            Some(_) => return true,
+            None => return false,
         };
     }
 
@@ -158,7 +167,7 @@ mod tests {
         let box_2 = PipeBox::new();
 
         
-        let mut pipe = Pipe::new()
+        let mut pipe = Pipe::new("Hello")
                             .push_box(box_1)
                             .push_box(box_2);
 
