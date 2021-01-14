@@ -65,8 +65,6 @@ pub mod models {
         }
     }
 
-    impl Eq for PipeUser {}
-
     impl PipeU for PipeUser {
         type Item = String;
 

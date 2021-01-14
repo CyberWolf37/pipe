@@ -11,7 +11,7 @@ pub enum PipeState {
     ConsumeState,
 }
 
-pub trait PipeU: Eq {
+pub trait PipeU: PartialEq {
     type Item;
 
     fn get_item(&self) -> &Self::Item;
